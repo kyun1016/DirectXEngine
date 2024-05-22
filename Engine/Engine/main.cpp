@@ -1,15 +1,16 @@
 #include <iostream>
 #include <memory>
 
-// #include "ExampleApp.h"
+#include "ExampleApp.h"
 
 int main() {
-    // ExampleApp exampleApp;
+    std::unique_ptr<AppBase> app;
+    app = std::make_unique<ExampleApp>();
 
-    // if (!exampleApp.Initialize()) {
+    if (!app.Initialize()) {
         std::cout << "Initialization failed." << std::endl;
         return -1;
-    // }
+    }
 
-    // return exampleApp.Run();
+    return app.Run();
 }
