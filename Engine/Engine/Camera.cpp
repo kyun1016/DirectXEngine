@@ -29,7 +29,7 @@ namespace kyun {
 	void Camera::UpdateViewDir()
 	{
 		// 이동할 때 기준이 되는 정면/오른쪽 방향 계산
-		mViewDir = DirectX::SimpleMath::Vector3::Transform(DirectX::SimpleMath::Vector3(0.0f, 0.0f, 1.0f), DirectX::SimpleMath::Matrix::CreateRotationY(mYaw);
+		mViewDir = DirectX::SimpleMath::Vector3::Transform(DirectX::SimpleMath::Vector3(0.0f, 0.0f, 1.0f), DirectX::SimpleMath::Matrix::CreateRotationY(mYaw));
 		mRightDir = mUpDir.Cross(mViewDir);
 	}
 	void Camera::UpdateKeyboard(const float dt, bool const keyPressed[256])
@@ -69,7 +69,7 @@ namespace kyun {
 	{
 		mPosition += mUpDir * mSpeed * dt;
 	}
-	void Camera::SetAspectRatio(float aspect)
+	void Camera::SetAspectRatio(const float& aspect)
 	{
 		mAspect = aspect;
 	}

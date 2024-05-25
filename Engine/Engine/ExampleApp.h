@@ -1,18 +1,19 @@
 #pragma once
 #include "AppBase.h"
 
-class ExampleApp : public AppBase
-{
-public:
-	ExampleApp();
+namespace kyun {
+	class ExampleApp : public AppBase
+	{
+	public:
+		ExampleApp();
 
-	virtual bool Initialize() override;
-	virtual void UpdateGUI() override;
-	virtual void Update(float dt) override;
-	virtual void Render() override;
+		virtual bool Initialize() override;
+		virtual void UpdateGUI() override;
+		virtual void Update(float dt) override;
+		virtual void Render() override;
 
-	void BuildFilters();
+		void BuildFilters();
 
-protected:
-};
-
+	protected:
+	};
+}

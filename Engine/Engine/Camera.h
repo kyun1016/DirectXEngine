@@ -5,6 +5,7 @@
 
 namespace kyun {
 	class Camera {
+	public:
 		Camera();
 
 		DirectX::SimpleMath::Matrix GetViewRow();
@@ -18,7 +19,7 @@ namespace kyun {
 		void MoveForward(float dt);
 		void MoveRight(float dt);
 		void MoveUp(float dt);
-		void SetAspectRatio(float aspect);
+		void SetAspectRatio(const float& aspect);
 		void PrintView();
 
 	public:

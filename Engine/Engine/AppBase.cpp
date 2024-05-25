@@ -25,16 +25,62 @@ namespace kyun {
     }
     AppBase::~AppBase()
     {
+        gAppBase = nullptr;
+
+        ImGui_ImplDX11_Shutdown();
+        ImGui_ImplWin32_Shutdown();
+        ImGui::DestroyContext();
+        DestroyWindow(mMainWindow);
     }
     float AppBase::GetAspectRatio() const
     {
-        return 0.0f;
+        return static_cast<float>(mScreenWidth) / mScreenHeight;
     }
     int AppBase::Run()
     {
+        MSG msg = { 0 };
+        while (WM_QUIT != msg.message) {
+            ImGui_ImplDX11_NewFrame();
+            ImGui_ImplWin32_NewFrame();
+            
+            ImGui::NewFrame();
+            ImGui::Begin("Scene Control");
+            ImGui::Text("Average %.3f ms/frame (%.1f FPS)",
+                1000.0f / ImGui::GetIO().Framerate,
+                ImGui::GetIO().Framerate);
+
+            UpdateGUI();
+
+            ImGui::End();
+            ImGui::Render();
+
+            Update(ImGui::GetIO().DeltaTime);
+
+            Render();
+
+            SetMainViewport();
+            mContext->OMSetRenderTargets(1, mBackBufferRTV.GetAddressOf(), NULL);
+
+            // GUI 렌더링
+            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+            // GUI 렌더링 후에 Present() 호출
+            mSwapChain->Present(1, 0);
+        }
         return 0;
     }
     bool AppBase::Initialize()
+    {
+        if (!InitMainWindow())
+            return false;
+        if (!InitDirect3D())
+            return false;
+        if (!InitGUI())
+            return false;
+        if (!InitScene())
+            return false;
+    }
+    bool AppBase::InitScene()
     {
         return false;
     }
@@ -50,22 +96,139 @@ namespace kyun {
     }
     bool AppBase::InitMainWindow()
     {
-        return false;
+        WNDCLASSEX wc = {
+            sizeof(WNDCLASSEX),
+            CS_CLASSDC,
+            WndProc,
+            0L,
+            0L,
+            GetModuleHandle(NULL),
+            NULL,
+            NULL,
+            NULL,
+            NULL,
+            L"AppWindow",
+            NULL
+        };
+        
+        if (!RegisterClassEx(&wc)) {
+            std::cout << "RegisterClassEx() failed." << std::endl;
+            return false;
+        }
+
+        RECT wr = {
+            0,                  // left
+            0,                  // top
+            mScreenWidth,       // right
+            mScreenHeight       // bottom
+        };
+        AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, false);
+        mMainWindow = CreateWindow(
+            wc.lpszClassName,
+            L"AppBass Window",
+            WS_OVERLAPPEDWINDOW,
+            100,
+            100,
+            wr.right - wr.left,
+            wr.bottom - wr.top,
+            NULL,
+            NULL,
+            wc.hInstance,
+            NULL
+        );
+
+        if (mMainWindow) {
+            std::cout << "CreateWindow() failed." << std::endl;
+            return false;
+        }
+
+        ShowWindow(mMainWindow, SW_SHOWDEFAULT);
+        UpdateWindow(mMainWindow);
+
+        return true;
     }
     bool AppBase::InitDirect3D()
     {
-        return false;
+        const D3D_DRIVER_TYPE driverType = D3D_DRIVER_TYPE_HARDWARE;
+        // const D3D_DRIVER_TYPE driverType = D3D_DRIVER_TYPE_WARP;
+
+        UINT createDeviceFlags = 0;
+#if defined(DEBUG) || defined(_DEBUG)
+        createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+        const D3D_FEATURE_LEVEL featureLevels[2] = {
+            D3D_FEATURE_LEVEL_11_0, // 더 높은 버전이 먼저 오도록 설정
+            D3D_FEATURE_LEVEL_9_3
+        };
+        D3D_FEATURE_LEVEL featureLevel;
+
+        DXGI_SWAP_CHAIN_DESC sd;
+        ZeroMemory(&sd, sizeof(sd));
+        sd.BufferDesc.Width = mScreenWidth;
+        sd.BufferDesc.Height = mScreenHeight;
+        sd.BufferDesc.RefreshRate.Numerator = 60;
+        sd.BufferDesc.RefreshRate.Denominator = 1;
+        sd.BufferDesc.Format = mBackBufferFormat;
+        sd.SampleDesc.Count = 1;                    // 픽셀 당 멀티샘플 수
+        sd.SampleDesc.Quality = 0;                  // 이미지 품질 수준
+        sd.BufferUsage =
+            DXGI_USAGE_RENDER_TARGET_OUTPUT | 
+            DXGI_USAGE_UNORDERED_ACCESS;            // Compute Shader
+        sd.BufferCount = 2;
+        sd.OutputWindow = mMainWindow;
+        sd.Windowed = TRUE;                         // 창모드
+        sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;   // 디스플레이 화면에서 픽셀을 처리하는 옵션
+        sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;  // 스왑체인 동작
+        
+        ThrowIfFailed(D3D11CreateDeviceAndSwapChain(
+            0,                  // IDXGIAdapter: 디스플레이 하위 시스템(e.g. GPU, DAC)
+            driverType,         // D3D_DRIVER_TYPE: 드라이버 유형 옵션
+            0,                  // HMODULE: 모듈에 대한 핸들, 메모리에 있는 모듈의 기본 주소
+            createDeviceFlags,  // D3D11_CREATE_DEVICE_FLAG: 디바이스를 만드는 데 사용되는 매개변수
+            featureLevels,      // D3D_FEATURE_LEVEL: 만드려는 기능 수준의 순서
+            1,                  // Feature Levels: pFeatureLevel의 요소 수
+            D3D11_SDK_VERSION,  // SDK Version
+            &sd,                // Swap Chain에 대한 포인터
+            mSwapChain.GetAddressOf(),  // 렌더링에 사용되는 스왑체인 포인터 주소
+            mDevice.GetAddressOf(),     // 만든 디바이스를 나타내는 포인터 주소
+            &featureLevel,      // 디바이스 기능 수준 배열의 첫번째 요소를 나타내는 포인터 반환 (필요 없는 경우 NULL)
+            mContext.GetAddressOf()     // DeviceContext 포인터 주소 반환
+        ));
+
+        if (featureLevel != D3D_FEATURE_LEVEL_11_0) {
+            std::cout << "D3D Feature Level 11 unsupported." << std::endl;
+            return false;
+        }
+
+        Graphics::InitCommonStates
+        
+        return true;
     }
     bool AppBase::InitGUI()
     {
         return false;
     }
-    void AppBase::SetViewport()
+    void AppBase::CreateBuffers()
     {
     }
-    bool AppBase::CreateRenderTargetView()
+    void AppBase::SetMainViewport()
     {
-        return false;
+        ZeroMemory(&mScreenViewport, sizeof(D3D11_VIEWPORT));
+        mScreenViewport.TopLeftX = 0;
+        mScreenViewport.TopLeftY = 0;
+        mScreenViewport.Width = static_cast<float>(mScreenWidth);
+        mScreenViewport.Height = static_cast<float>(mScreenHeight);
+        mScreenViewport.MinDepth = 0.0f;
+        mScreenViewport.MaxDepth = 1.0f;
+
+        mContext->RSSetViewports(1, &mScreenViewport);
+    }
+    void AppBase::SetShadowViewport()
+    {
+    }
+    void AppBase::ComputeShaderBarrier()
+    {
     }
 }
 
