@@ -5,7 +5,7 @@
 
 int main() {
     std::unique_ptr<kyun::AppBase> app;
-    app = std::make_unique<kyun::AppBase>();
+    app = std::make_unique<kyun::ExampleApp>();
 
     if (!app->Initialize()) {
         std::cout << "Initialization failed." << std::endl;

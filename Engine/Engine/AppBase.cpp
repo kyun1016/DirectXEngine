@@ -84,11 +84,52 @@ namespace kyun {
     }
     bool AppBase::InitScene()
     {
+        // 조명 설정
+        {
+            mGlobalConstantCPU.lights[0].radiance = DirectX::SimpleMath::Vector3(5.0f);
+            mGlobalConstantCPU.lights[0].fallOffStart = 0.0f;
+            mGlobalConstantCPU.lights[0].direction = DirectX::SimpleMath::Vector3(0.0f, 0.0f, 1.0f);
+            mGlobalConstantCPU.lights[0].fallOffEnd = 20.0f;
+            mGlobalConstantCPU.lights[0].position = DirectX::SimpleMath::Vector3(0.0f, 1.5f, 1.1f);
+            mGlobalConstantCPU.lights[0].spotPower = 3.0f;
+            mGlobalConstantCPU.lights[0].type = LIGHT_SPOT | LIGHT_SHADOW;
+            mGlobalConstantCPU.lights[0].radius = 0.04f; // 반지름
+            mGlobalConstantCPU.lights[0].haloRadius = 0.0f;
+            mGlobalConstantCPU.lights[0].haloStrength = 0.0f;
+
+            mGlobalConstantCPU.lights[1].radiance = DirectX::SimpleMath::Vector3(5.0f);
+            mGlobalConstantCPU.lights[1].fallOffStart = 0.0f;
+            mGlobalConstantCPU.lights[1].direction = DirectX::SimpleMath::Vector3(0.0f, 0.0f, 1.0f);
+            mGlobalConstantCPU.lights[1].fallOffEnd = 20.0f;
+            mGlobalConstantCPU.lights[1].position = DirectX::SimpleMath::Vector3(0.0f, 0.0f, -2.0f);
+            mGlobalConstantCPU.lights[1].spotPower = 3.0f;
+            mGlobalConstantCPU.lights[1].type = LIGHT_SPOT | LIGHT_SHADOW;
+            mGlobalConstantCPU.lights[1].radius = 0.04f; // 반지름
+            mGlobalConstantCPU.lights[1].haloRadius = 0.0f;
+            mGlobalConstantCPU.lights[1].haloStrength = 0.0f;
+
+            mGlobalConstantCPU.lights[2].type = LIGHT_OFF;
+        }
         return false;
     }
     LRESULT AppBase::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
-        return LRESULT();
+
+        if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam))
+            return true;
+
+        switch (msg) {
+
+        case WM_SYSCOMMAND:
+            if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
+                return 0;
+            break;
+        case WM_DESTROY:
+            ::PostQuitMessage(0);
+            return 0;
+        }
+
+        return ::DefWindowProc(hwnd, msg, wParam, lParam);
     }
     void AppBase::OnMouseMove(WPARAM btnState, int mouseX, int mouseY)
     {
@@ -192,7 +233,7 @@ namespace kyun {
             NULL
         );
 
-        if (mMainWindow) {
+        if (!mMainWindow) {
             std::cout << "CreateWindow() failed." << std::endl;
             return false;
         }
@@ -247,7 +288,7 @@ namespace kyun {
             &sd,                // Swap Chain에 대한 포인터
             mSwapChain.GetAddressOf(),  // 렌더링에 사용되는 스왑체인 포인터 주소
             mDevice.GetAddressOf(),     // 만든 디바이스를 나타내는 포인터 주소
-            &featureLevel,      // 디바이스 기능 수준 배열의 첫번째 요소를 나타내는 포인터 반환 (필요 없는 경우 NULL)
+            &featureLevel,              // 디바이스 기능 수준 배열의 첫번째 요소를 나타내는 포인터 반환 (필요 없는 경우 NULL)
             mContext.GetAddressOf()     // DeviceContext 포인터 주소 반환
         ));
 
@@ -304,7 +345,7 @@ namespace kyun {
 
         // Float MSAA RenderTargetView/ShaderResourceView
         ThrowIfFailed(mDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R16G16B16A16_FLOAT, 4, &mNumQualityLevels));
-        std::cout << "MSAA Quality: " <<  mNumQualityLevels << std::endl;
+        // std::cout << "MSAA Quality: " <<  mNumQualityLevels << std::endl;
 
         D3D11_TEXTURE2D_DESC desc;
         backBuffer->GetDesc(&desc);
@@ -352,6 +393,9 @@ namespace kyun {
         ThrowIfFailed(mDevice->CreateRenderTargetView(mPostEffectsBuffer.Get(), NULL, mPostEffectsRTV.GetAddressOf()));
 
         CreateDepthBuffers();
+
+        // TODO: Make Post Process
+        // m_postProcess.Initialize(m_device, m_context, { m_postEffectsSRV, m_prevSRV },            { m_backBufferRTV }, m_screenWidth, m_screenHeight,            4);
     }
     void AppBase::SetMainViewport()
     {

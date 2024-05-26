@@ -104,7 +104,7 @@ public:
 		D3D11Utils::UpdateBuffer(context, mCpu, mGpu);
 	}
 
-	T& GetCpu() { return mCPU; }
+	T& GetCpu() { return mCpu; }
 	const auto Get() { return mGpu.Get(); }
 	const auto GetAddressOf() { return mGpu.GetAddressOf(); }
 public:

@@ -2,6 +2,44 @@
 
 namespace kyun {
 namespace Graphics {
+Microsoft::WRL::ComPtr<ID3D11InputLayout> basicIL;
+// Shaders
+Microsoft::WRL::ComPtr<ID3D11VertexShader> basicVS;
+Microsoft::WRL::ComPtr<ID3D11PixelShader> basicPS;
+// Samplers
+Microsoft::WRL::ComPtr<ID3D11SamplerState> linearWarpSS;
+Microsoft::WRL::ComPtr<ID3D11SamplerState> linearClampSS;
+Microsoft::WRL::ComPtr<ID3D11SamplerState> pointClampSS;
+Microsoft::WRL::ComPtr<ID3D11SamplerState> shadowPointSS;
+Microsoft::WRL::ComPtr<ID3D11SamplerState> shadowCompareSS;
+Microsoft::WRL::ComPtr<ID3D11SamplerState> pointWarpSS;
+Microsoft::WRL::ComPtr<ID3D11SamplerState> linearMirrorSS;
+std::vector<ID3D11SamplerState*> sampleStates;
+
+// Rasterizer States
+Microsoft::WRL::ComPtr<ID3D11RasterizerState> solidRS;
+Microsoft::WRL::ComPtr<ID3D11RasterizerState> solidCcwRS;
+Microsoft::WRL::ComPtr<ID3D11RasterizerState> wireRS;
+Microsoft::WRL::ComPtr<ID3D11RasterizerState> wireCcwRS;
+Microsoft::WRL::ComPtr<ID3D11RasterizerState> postProcessingRS;
+Microsoft::WRL::ComPtr<ID3D11RasterizerState> solidBothRS;
+Microsoft::WRL::ComPtr<ID3D11RasterizerState> solidBothCcwRS;
+Microsoft::WRL::ComPtr<ID3D11RasterizerState> wireBothRS;
+Microsoft::WRL::ComPtr<ID3D11RasterizerState> wireBothCcwRS;
+
+// Blend States
+Microsoft::WRL::ComPtr<ID3D11BlendState> mirrorBS;
+Microsoft::WRL::ComPtr<ID3D11BlendState> accumulateBS;
+Microsoft::WRL::ComPtr<ID3D11BlendState> alphaBS;
+
+// Depth Stencil States
+Microsoft::WRL::ComPtr<ID3D11DepthStencilState> drawDSS; // 일반적으로 그리기
+Microsoft::WRL::ComPtr<ID3D11DepthStencilState> maskDSS; // 스텐실버퍼에 표시
+Microsoft::WRL::ComPtr<ID3D11DepthStencilState> drawMaskedDSS; // 스텐실 표시된 곳만
+
+// Graphics Pipeline States
+GraphicsPSO defaultSolidPSO;
+
 void InitCommonStates(Microsoft::WRL::ComPtr<ID3D11Device>& device)
 {
 	InitShaders(device);

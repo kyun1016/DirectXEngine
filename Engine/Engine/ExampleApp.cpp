@@ -5,11 +5,6 @@ namespace kyun {
 	{
 	}
 
-	bool ExampleApp::Initialize()
-	{
-		return false;
-	}
-
 	void ExampleApp::UpdateGUI()
 	{
 	}
@@ -20,6 +15,8 @@ namespace kyun {
 
 	void ExampleApp::Render()
 	{
+		AppBase::SetMainViewport();
+
 	}
 
 	void ExampleApp::BuildFilters()

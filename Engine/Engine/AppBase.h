@@ -73,6 +73,7 @@ namespace kyun {
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mResolvedSRV;
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mPostEffectsSRV;
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mBackBufferRTV;
+        // TODO: Make Post Process
         // PostProcess m_postProcess;
 
         // DepthBuffer
