@@ -26,7 +26,6 @@ void InitShaders(Microsoft::WRL::ComPtr<ID3D11Device>& device)
 
 	D3D11Utils::CreateVertexShaderAndInpoutLayout(device, L"BasicVS.hlsl", basicIEs, basicVS, basicIL);
 	D3D11Utils::CreatePixelShader(device, L"BasicPS.hlsl", basicPS);
-
 }
 void InitSamplers(Microsoft::WRL::ComPtr<ID3D11Device>& device)
 {
@@ -169,30 +168,109 @@ void InitRasterizerStates(Microsoft::WRL::ComPtr<ID3D11Device>& device)
 	rasterDesc.FrontCounterClockwise = false;
 	rasterDesc.DepthClipEnable = false;
 	rasterDesc.MultisampleEnable = false;
-	TThrowIfFailed(device->CreateRasterizerState(&rasterDesc, postProcessingRS.GetAddressOf()));
+	ThrowIfFailed(device->CreateRasterizerState(&rasterDesc, postProcessingRS.GetAddressOf()));
 }
 void InitBlendStates(Microsoft::WRL::ComPtr<ID3D11Device>& device)
 {
-}
-void InitDepthStencilStates(Microsoft::WRL::ComPtr<ID3D11Device>& device)
-{
+	// https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ns-d3d11-d3d11_blend_desc
 	D3D11_BLEND_DESC blendDesc;
 	ZeroMemory(&blendDesc, sizeof(blendDesc));
 	blendDesc.AlphaToCoverageEnable = true;			// 픽셀을 렌더링 대상으로 설정할 때, alpha-to-coverage를 multisampling 기술로 적용할지 여부 결정
-	blendDesc.IndependentBlendEnable = false;		// 
+	blendDesc.IndependentBlendEnable = false;		// 동시 렌더링 대상에서 독립적인 혼합을 사용할지 여부, TRUE: 0~8, FALSE: 0
+	blendDesc.RenderTarget[0].BlendEnable = true;						// 혼합 여부
+	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_BLEND_FACTOR;		// 픽셀 셰이더가 출력하는 RGB 값에 수행할 작업
+	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_BLEND_FACTOR;		// 렌더링 대상의 RGB 값에 수행할 작업
+	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;				// ScrBlend 및 DestBlend를 결합하는 방법
+	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;			// 픽셀 셰이더가 출력하는 알파 값에서 수행할 작업 지정, _COLOR 끝나는 혼합 옵션은 불가
+	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;			// 렌더링 대상의 현재 알파 값에서 수행할 작업 지정, _COLOR 끝나는 혼합 옵션은 불가
+	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;		// SrcBlendAlpha 및 DestBlendAlpha를 결합하는 방법
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;	// 쓰기 마스크
+	ThrowIfFailed(device->CreateBlendState(&blendDesc, mirrorBS.GetAddressOf()));
+
+	blendDesc.AlphaToCoverageEnable = true;
+	blendDesc.IndependentBlendEnable = false;
 	blendDesc.RenderTarget[0].BlendEnable = true;
-	blendDesc.RenderTarget[0].SrcBlend;
-	blendDesc.RenderTarget[0].DestBlend;
-	blendDesc.RenderTarget[0].BlendOp;
-	blendDesc.RenderTarget[0].SrcBlendAlpha;
-	blendDesc.RenderTarget[0].DestBlendAlpha;
-	blendDesc.RenderTarget[0].BlendOpAlpha;
-	blendDesc.RenderTarget[0].RenderTargetWriteMask;
+	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_BLEND_FACTOR;
+	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_BLEND_FACTOR;
+	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	ThrowIfFailed(device->CreateBlendState(&blendDesc, accumulateBS.GetAddressOf()));
+
+	blendDesc.AlphaToCoverageEnable = false;
+	blendDesc.IndependentBlendEnable = false;
+	blendDesc.RenderTarget[0].BlendEnable = true;
+	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	ThrowIfFailed(device->CreateBlendState(&blendDesc, alphaBS.GetAddressOf()));
+}
+void InitDepthStencilStates(Microsoft::WRL::ComPtr<ID3D11Device>& device)
+{
+	D3D11_DEPTH_STENCIL_DESC dsDesc;
+	ZeroMemory(&dsDesc, sizeof(dsDesc));
+	dsDesc.DepthEnable = true;									// 깊이 테스트 사용
+	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;			// 깊이 데이터로 수정할 수 있는 깊이 스텐실 버퍼의 일부를 식별
+	dsDesc.DepthFunc = D3D11_COMPARISON_LESS;					// 깊이 데이터를 기존 깊이 데이터와 비교하는 함수
+	dsDesc.StencilEnable = false;								// 스텐실 테스트를 사용하도록 설정
+	dsDesc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;	// 스텐실 데이터를 읽기 위한 깊이 스텐실 버퍼 일부를 식별
+	dsDesc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;	// 스텐실 데이터를 작성하기 위한 깊이 스텐실 버퍼의 일부를 식별
+	dsDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;		// 스텐실 테스트가 실패할 때 수행할 스텐실 작업
+	dsDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;// 스텐실 테스트가 통과되고 깊이 테스트가 실패할 때 수행할 스텐실 작업
+	dsDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;		// 스텐실 테스트와 깊이 테스트가 둘 다 통과할 때 스텐실 작업
+	dsDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;		// 스텐실 데이터를 기존 스텐실 데이터와 비교하는 함수
+	dsDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	dsDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	dsDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	dsDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	ThrowIfFailed(device->CreateDepthStencilState(&dsDesc, drawDSS.GetAddressOf()));
+
+	dsDesc.DepthEnable = true;				// 이미 그려진 물체 유지
+	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	dsDesc.StencilEnable = true;			// Stencil 필수
+	dsDesc.StencilReadMask = 0xFF;			// 모든 비트 다 사용
+	dsDesc.StencilWriteMask = 0xFF;			// 모든 비트 다 사용
+	dsDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	dsDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	dsDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	dsDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	dsDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	dsDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	dsDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	dsDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	ThrowIfFailed(device->CreateDepthStencilState(&dsDesc, maskDSS.GetAddressOf()));
+
+	dsDesc.DepthEnable = true;				// 이미 그려진 물체 유지
+	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	dsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+	dsDesc.StencilEnable = true;			// Stencil 필수
+	dsDesc.StencilReadMask = 0xFF;			// 모든 비트 다 사용
+	dsDesc.StencilWriteMask = 0xFF;			// 모든 비트 다 사용
+	dsDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	dsDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	dsDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	dsDesc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+	dsDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	dsDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+	dsDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	dsDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	ThrowIfFailed(device->CreateDepthStencilState(&dsDesc, drawMaskedDSS.GetAddressOf()));
 }
 void InitPipelineStates(Microsoft::WRL::ComPtr<ID3D11Device>& device)
 {
+	defaultSolidPSO.mVertexShader = basicVS;
+	defaultSolidPSO.mInputLayout = basicIL;
+	defaultSolidPSO.mPixelShader = basicPS;
+	defaultSolidPSO.mRasterizerState = solidRS;
+	defaultSolidPSO.mPrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
-
-}
-}
+} // namespace Graphics
+} // namespace kyun
 

@@ -94,6 +94,31 @@ namespace kyun {
     void AppBase::UpdateMousePickColor()
     {
     }
+    void AppBase::CreateDepthBuffers()
+    {
+        D3D11_TEXTURE2D_DESC desc;
+        ZeroMemory(&desc, sizeof(desc));
+        desc.Width = mScreenWidth;
+        desc.Height = mScreenHeight;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        if (mUseMSAA && mNumQualityLevels) {
+            desc.SampleDesc.Count = 4;
+            desc.SampleDesc.Quality = mNumQualityLevels - 1;
+        }
+        else {
+            desc.SampleDesc.Count = 1;
+            desc.SampleDesc.Quality = 0;
+        }
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+        desc.CPUAccessFlags = 0;
+        desc.MiscFlags = 0;
+
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> depthStencilBuffer;
+
+    }
     bool AppBase::InitMainWindow()
     {
         WNDCLASSEX wc = {
@@ -201,7 +226,9 @@ namespace kyun {
             return false;
         }
 
-        Graphics::InitCommonStates
+        Graphics::InitCommonStates(mDevice);
+
+        CreateBuffers();
         
         return true;
     }
@@ -211,6 +238,61 @@ namespace kyun {
     }
     void AppBase::CreateBuffers()
     {
+        // BackBuffer를 통해 화면으로 최종 출력
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
+        ThrowIfFailed(mSwapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf())));
+        ThrowIfFailed(mDevice->CreateRenderTargetView(backBuffer.Get(), NULL, mBackBufferRTV.GetAddressOf()));
+
+        // Float MSAA RenderTargetView/ShaderResourceView
+        ThrowIfFailed(mDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R16G16B16A16_FLOAT, 4, &mNumQualityLevels));
+        std::cout << "MSAA Quality: " <<  mNumQualityLevels << std::endl;
+
+        D3D11_TEXTURE2D_DESC desc;
+        backBuffer->GetDesc(&desc);
+
+        // 이전 프레임 저장용
+        ThrowIfFailed(mDevice->CreateTexture2D(&desc, NULL, mPrevBuffer.GetAddressOf()));
+        ThrowIfFailed(mDevice->CreateRenderTargetView(mPrevBuffer.Get(), NULL, mPrevRTV.GetAddressOf()));
+        ThrowIfFailed(mDevice->CreateShaderResourceView(mPrevBuffer.Get(), NULL, mPrevSRV.GetAddressOf()));
+
+        // desc.Width;
+        // desc.Height;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        if (mUseMSAA && mNumQualityLevels) {
+            desc.SampleDesc.Count = 4;
+            desc.SampleDesc.Quality = mNumQualityLevels - 1;
+        }
+        else {
+            desc.SampleDesc.Count = 1;
+            desc.SampleDesc.Quality = 0;
+        }
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        // desc.BindFlags;  // 파이프라인에 리소스를 바인딩하는 방법 기술
+        desc.CPUAccessFlags = 0;
+        desc.MiscFlags = 0;
+        ThrowIfFailed(mDevice->CreateTexture2D(&desc, NULL, mFloatBuffer.GetAddressOf()));
+        ThrowIfFailed(mDevice->CreateRenderTargetView(mFloatBuffer.Get(), NULL, mFloatRTV.GetAddressOf()));
+
+        // Float MSAA Resolve 후 저장할 SRV/RTV
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+            desc.SampleDesc.Count = 1;
+            desc.SampleDesc.Quality = 0;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+        desc.CPUAccessFlags = 0;
+        desc.MiscFlags = 0;
+        ThrowIfFailed(mDevice->CreateTexture2D(&desc, NULL, mResolvedBuffer.GetAddressOf()));
+        ThrowIfFailed(mDevice->CreateTexture2D(&desc, NULL, mPostEffectsBuffer.GetAddressOf()));
+        ThrowIfFailed(mDevice->CreateShaderResourceView(mResolvedBuffer.Get(), NULL, mResolvedSRV.GetAddressOf()));
+        ThrowIfFailed(mDevice->CreateShaderResourceView(mPostEffectsBuffer.Get(), NULL, mPostEffectsSRV.GetAddressOf()));
+        ThrowIfFailed(mDevice->CreateRenderTargetView(mResolvedBuffer.Get(), NULL, mResolvedRTV.GetAddressOf()));
+        ThrowIfFailed(mDevice->CreateRenderTargetView(mPostEffectsBuffer.Get(), NULL, mPostEffectsRTV.GetAddressOf()));
+
+        CreateDepthBuffers();
     }
     void AppBase::SetMainViewport()
     {

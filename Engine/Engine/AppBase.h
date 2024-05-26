@@ -36,6 +36,8 @@ namespace kyun {
         virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
         virtual void OnMouseMove(WPARAM btnState, int mouseX, int mouseY);
         virtual void UpdateMousePickColor();
+        
+        void CreateDepthBuffers();
 
     protected: // 상속 받은 클래스에서도 접근 가능
         bool InitMainWindow();
@@ -50,15 +52,38 @@ namespace kyun {
         int mScreenWidth;
         int mScreenHeight;
         HWND mMainWindow;
+        
         D3D11_VIEWPORT mScreenViewport;
         Camera mCamera;
-
+        
+        // backbuffer
         DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+        UINT mNumQualityLevels = 0;
+        bool mUseMSAA = true;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> mPrevBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> mFloatBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> mResolvedBuffer;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> mPostEffectsBuffer;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mPrevRTV;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mFloatRTV;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mResolvedRTV;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mPostEffectsRTV;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mPrevSRV;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mResolvedSRV;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mPostEffectsSRV;
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mBackBufferRTV;
+        // PostProcess m_postProcess;
+
+        // DepthBuffer
+
+
+
 
         Microsoft::WRL::ComPtr<ID3D11Device> mDevice;
         Microsoft::WRL::ComPtr<ID3D11DeviceContext> mContext;
         Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain;
-        Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mBackBufferRTV;
+
+
     };
 }
 
