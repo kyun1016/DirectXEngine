@@ -79,6 +79,8 @@ namespace kyun {
             return false;
         if (!InitScene())
             return false;
+
+        return true;
     }
     bool AppBase::InitScene()
     {
@@ -117,7 +119,35 @@ namespace kyun {
         desc.MiscFlags = 0;
 
         Microsoft::WRL::ComPtr<ID3D11Texture2D> depthStencilBuffer;
+        ThrowIfFailed(mDevice->CreateTexture2D(&desc, NULL, depthStencilBuffer.GetAddressOf()));
+        ThrowIfFailed(mDevice->CreateDepthStencilView(depthStencilBuffer.Get(), NULL, mDefaultDSV.GetAddressOf()));
 
+        // Depth 전용
+        desc.Width = mScreenWidth;
+        desc.Height = mScreenHeight;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R32_TYPELESS;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+        desc.CPUAccessFlags = 0;
+        desc.MiscFlags = 0;
+        ThrowIfFailed(mDevice->CreateTexture2D(&desc, NULL, mDepthOnlyBuffer.GetAddressOf()));
+
+        // 그림자 Buffer (Depth 전용)
+        desc.Width = mScreenWidth;
+        desc.Height = mScreenHeight;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R32_TYPELESS;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+        desc.CPUAccessFlags = 0;
+        desc.MiscFlags = 0;
     }
     bool AppBase::InitMainWindow()
     {
@@ -229,12 +259,41 @@ namespace kyun {
         Graphics::InitCommonStates(mDevice);
 
         CreateBuffers();
+
+        SetMainViewport();
+
+        // 공통으로 쓰이는 ConstantBuffers
+        D3D11Utils::CreateConstantBuffer(mDevice, mGlobalConstantCPU, mGlobalConstantGPU);
+        D3D11Utils::CreateConstantBuffer(mDevice, mReflectGlobalConstantCPU, mReflectGlobalConstantGPU);
+
+        // 그림자맵 렌더링할 때 사용할 GlobalContants 별도 생성
+        for (int i = 0; i < MAX_LIGHTS; ++i) {
+            D3D11Utils::CreateConstantBuffer(mDevice, mShadowGlobalConstantCPU[i], mShadowGlobalConstantGPU[i]);
+        }
+        // 후처리 효과음 ConstantBuffer
+        D3D11Utils::CreateConstantBuffer(mDevice, mPostEffectsConstantCPU, mPostEffectsConstantGPU);
         
         return true;
     }
     bool AppBase::InitGUI()
     {
-        return false;
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        (void)io;
+        io.DisplaySize = ImVec2(static_cast<float>(mScreenWidth), static_cast<float>(mScreenHeight));
+        ImGui::StyleColorsLight();
+
+        // Setup Platform/Renderer backends
+        if (!ImGui_ImplDX11_Init(mDevice.Get(), mContext.Get())) {
+            return false;
+        }
+
+        if (!ImGui_ImplWin32_Init(mMainWindow)) {
+            return false;
+        }
+
+        return true;
     }
     void AppBase::CreateBuffers()
     {

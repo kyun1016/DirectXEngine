@@ -1,3 +1,4 @@
+#pragma once
 
 #include <wrl/client.h>
 #include <d3d11.h>
@@ -44,5 +45,47 @@ public:
         const std::wstring& filename,
         Microsoft::WRL::ComPtr<ID3D11PixelShader>& mPixelShader
     );
+
+    template <typename T>
+    static void CreateConstantBuffer(
+        Microsoft::WRL::ComPtr<ID3D11Device>& device,
+        const T& constantBufferData,
+        Microsoft::WRL::ComPtr<ID3D11Buffer>& constantBuffer
+    ) {
+        static_assert((sizeof(T) % 16) == 0,
+            "Constant Buffer size must be 16-byte aligned");
+
+        D3D11_BUFFER_DESC desc;
+        ZeroMemory(&desc, sizeof(desc));
+        desc.ByteWidth = sizeof(constantBufferData);
+        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        desc.MiscFlags = 0;
+        desc.StructureByteStride = 0;
+
+        D3D11_SUBRESOURCE_DATA initData;
+        ZeroMemory(&initData, sizeof(initData));
+        initData.pSysMem = &constantBufferData;
+        initData.SysMemPitch = 0;
+        initData.SysMemSlicePitch = 0;
+        ThrowIfFailed(device->CreateBuffer(&desc, &initData, constantBuffer.GetAddressOf()));
+    }
+
+    template <typename T>
+    static void UpdateBuffer(
+        Microsoft::WRL::ComPtr<ID3D11DeviceContext>& context,
+        const std::vector<T>& bufferData,
+        Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer
+    ) {
+        if (!buffer) {
+            std::cout << "UpdateBuffer() buffer was not initialized." << std::endl;
+        }
+
+        D3D11_MAPPED_SUBRESOURCE ms;
+        ThrowIfFailed(context->Map(buffer.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms));
+        memcpy(ms.pData, &bufferData, sizeof(bufferData));
+        context->Unmap(buffer.Get(), NULL);
+    }
 };
 }

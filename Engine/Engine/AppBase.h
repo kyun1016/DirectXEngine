@@ -15,6 +15,7 @@
 #include "Camera.h"
 #include "D3D11Utils.h"
 #include "GraphicsCommon.h"
+#include "ConstantBuffers.h"
 
 namespace kyun {
     class AppBase
@@ -75,7 +76,22 @@ namespace kyun {
         // PostProcess m_postProcess;
 
         // DepthBuffer
+        int mShadowWidth = 1920;
+        int mShadowHeight = 1080;
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> mDepthOnlyBuffer;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> mDepthOnlyDSV;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilView> mDefaultDSV;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mDepthOnlySRV;
 
+        // Constants Buffer
+        GlobalConstants mGlobalConstantCPU;
+        GlobalConstants mReflectGlobalConstantCPU;
+        GlobalConstants mShadowGlobalConstantCPU[MAX_LIGHTS];
+        PostEffectsConstants mPostEffectsConstantCPU;
+        Microsoft::WRL::ComPtr<ID3D11Buffer> mGlobalConstantGPU;
+        Microsoft::WRL::ComPtr<ID3D11Buffer> mReflectGlobalConstantGPU;
+        Microsoft::WRL::ComPtr<ID3D11Buffer> mShadowGlobalConstantGPU[MAX_LIGHTS];
+        Microsoft::WRL::ComPtr<ID3D11Buffer> mPostEffectsConstantGPU;
 
 
 
