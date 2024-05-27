@@ -16,6 +16,7 @@
 #include "D3D11Utils.h"
 #include "GraphicsCommon.h"
 #include "ConstantBuffers.h"
+#include "Model.h"
 
 namespace kyun {
     class AppBase
@@ -95,12 +96,13 @@ namespace kyun {
         Microsoft::WRL::ComPtr<ID3D11Buffer> mPostEffectsConstantGPU;
 
 
-
+        // Shader 제어
         Microsoft::WRL::ComPtr<ID3D11Device> mDevice;
         Microsoft::WRL::ComPtr<ID3D11DeviceContext> mContext;
         Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain;
 
-
+        // 물체 List
+        std::vector<std::shared_ptr<Model>> mModelList;
     };
 }
 

@@ -148,9 +148,11 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3D11Utils.cpp" />
     <ClCompile Include="ExampleApp.cpp" />
+    <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="GraphicsCommon.cpp" />
     <ClCompile Include="GraphicsPSO.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Model.cpp" />
     <ClCompile Include="PostProcess.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -159,9 +161,15 @@
     <ClInclude Include="ConstantBuffers.h" />
     <ClInclude Include="D3D11Utils.h" />
     <ClInclude Include="ExampleApp.h" />
+    <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="GraphicsCommon.h" />
     <ClInclude Include="GraphicsPSO.h" />
+    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="MeshData.h" />
+    <ClInclude Include="Model.h" />
     <ClInclude Include="PostProcess.h" />
+    <ClInclude Include="Texture3D.h" />
+    <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Common.hlsli" />

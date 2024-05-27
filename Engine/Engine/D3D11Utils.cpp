@@ -79,5 +79,67 @@ namespace kyun {
 			&mPixelShader
 		);
 	}
+	void D3D11Utils::CreateTexture3D(
+		Microsoft::WRL::ComPtr<ID3D11Device>& device,
+		const int& width, const int& height, const int& depth,
+		const DXGI_FORMAT pixelFormat,
+		const std::vector<float>& initData,
+		Microsoft::WRL::ComPtr<ID3D11Texture3D>& texture,
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView>& rtv,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv,
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>& uav)	
+	{
+		D3D11_TEXTURE3D_DESC txtDesc;
+		ZeroMemory(&txtDesc, sizeof(txtDesc));
+		txtDesc.Width = width;
+		txtDesc.Height = height;
+		txtDesc.Depth = depth;
+		txtDesc.MipLevels = 1;
+		txtDesc.Format = pixelFormat;
+		txtDesc.Usage = D3D11_USAGE_DEFAULT;
+		txtDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET | D3D11_BIND_UNORDERED_ACCESS;
+		txtDesc.CPUAccessFlags = 0;
+		txtDesc.MiscFlags = 0;
+
+		if (initData.size() > 0) {
+			size_t pixelSize = GetPixelSize(pixelFormat);
+			D3D11_SUBRESOURCE_DATA bufferData;
+			ZeroMemory(&bufferData, sizeof(bufferData));
+			bufferData.pSysMem = initData.data();
+			bufferData.SysMemPitch = UINT(width * pixelSize);
+			bufferData.SysMemSlicePitch = UINT(width * height * pixelSize);
+			ThrowIfFailed(device->CreateTexture3D(&txtDesc, &bufferData, texture.GetAddressOf()));
+		}
+		else {
+			ThrowIfFailed(device->CreateTexture3D(&txtDesc, NULL, texture.GetAddressOf()));
+		}
+
+		ThrowIfFailed(device->CreateRenderTargetView(texture.Get(), NULL, rtv.GetAddressOf()));
+		ThrowIfFailed(device->CreateShaderResourceView(texture.Get(), NULL, srv.GetAddressOf()));
+		ThrowIfFailed(device->CreateUnorderedAccessView(texture.Get(), NULL, uav.GetAddressOf()));
+	}
+	size_t D3D11Utils::GetPixelSize(DXGI_FORMAT pixelFormat)
+	{
+		switch (pixelFormat) {
+		case DXGI_FORMAT_R16G16B16A16_FLOAT:
+			return sizeof(uint16_t) * 4;
+		case DXGI_FORMAT_R32G32B32A32_FLOAT:
+			return sizeof(uint32_t) * 4;
+		case DXGI_FORMAT_R32_FLOAT:
+			return sizeof(uint32_t) * 1;
+		case DXGI_FORMAT_R8G8B8A8_UNORM:
+			return sizeof(uint8_t) * 4;
+		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+			return sizeof(uint8_t) * 4;
+		case DXGI_FORMAT_R32_SINT:
+			return sizeof(int32_t) * 1;
+		case DXGI_FORMAT_R16_FLOAT:
+			return sizeof(uint16_t) * 1;
+		}
+
+		std::cout << "PixelFormat not implemented " << pixelFormat << std::endl;
+
+		return sizeof(uint8_t) * 4;
+	}
 }
 

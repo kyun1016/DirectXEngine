@@ -87,5 +87,18 @@ public:
         memcpy(ms.pData, &bufferData, sizeof(bufferData));
         context->Unmap(buffer.Get(), NULL);
     }
+
+    static void CreateTexture3D(
+        Microsoft::WRL::ComPtr<ID3D11Device>& device,
+        const int& width, const int& height, const int& depth,
+        const DXGI_FORMAT pixelFormat,
+        const std::vector<float>& initData,
+        Microsoft::WRL::ComPtr<ID3D11Texture3D>& texture,
+        Microsoft::WRL::ComPtr<ID3D11RenderTargetView>& rtv,
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv,
+        Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>& uav
+    );
+
+    static size_t GetPixelSize(DXGI_FORMAT pixelFormat);
 };
 }
