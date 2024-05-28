@@ -8,7 +8,7 @@ namespace kyun {
 	public:
 		ExampleApp();
 
-		virtual bool InitScene() override;
+		virtual bool Initialize() override;
 
 		virtual void UpdateGUI() override;
 		virtual void Update(float dt) override;

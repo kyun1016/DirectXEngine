@@ -71,7 +71,21 @@ public:
         initData.SysMemSlicePitch = 0;
         ThrowIfFailed(device->CreateBuffer(&desc, &initData, constantBuffer.GetAddressOf()));
     }
+    template <typename T>
+    static void UpdateBuffer(
+        Microsoft::WRL::ComPtr<ID3D11DeviceContext>& context,
+        const T& bufferData,
+        Microsoft::WRL::ComPtr<ID3D11Buffer>& buffer
+    ) {
+        if (!buffer) {
+            std::cout << "UpdateBuffer() buffer was not initialized." << std::endl;
+        }
 
+        D3D11_MAPPED_SUBRESOURCE ms;
+        ThrowIfFailed(context->Map(buffer.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms));
+        memcpy(ms.pData, &bufferData, sizeof(bufferData));
+        context->Unmap(buffer.Get(), NULL);
+    }
     template <typename T>
     static void UpdateBuffer(
         Microsoft::WRL::ComPtr<ID3D11DeviceContext>& context,
@@ -84,7 +98,7 @@ public:
 
         D3D11_MAPPED_SUBRESOURCE ms;
         ThrowIfFailed(context->Map(buffer.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms));
-        memcpy(ms.pData, &bufferData, sizeof(bufferData));
+        memcpy(ms.pData, bufferData.data(), sizeof(T) * bufferData.size());
         context->Unmap(buffer.Get(), NULL);
     }
 

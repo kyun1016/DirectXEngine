@@ -57,6 +57,9 @@ namespace kyun {
         
         D3D11_VIEWPORT mScreenViewport;
         Camera mCamera;
+        bool mKeyPressed[256] = {
+            false,
+        };
         
         // backbuffer
         DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;

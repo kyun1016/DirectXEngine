@@ -40,32 +40,38 @@ namespace kyun {
 	{
 		MSG msg = { 0 };
 		while (WM_QUIT != msg.message) {
-			ImGui_ImplDX11_NewFrame();
-			ImGui_ImplWin32_NewFrame();
+			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+			else {
+				ImGui_ImplDX11_NewFrame();
+				ImGui_ImplWin32_NewFrame();
 
-			ImGui::NewFrame();
-			ImGui::Begin("Scene Control");
-			ImGui::Text("Average %.3f ms/frame (%.1f FPS)",
-				1000.0f / ImGui::GetIO().Framerate,
-				ImGui::GetIO().Framerate);
+				ImGui::NewFrame();
+				ImGui::Begin("Scene Control");
+				ImGui::Text("Average %.3f ms/frame (%.1f FPS)",
+					1000.0f / ImGui::GetIO().Framerate,
+					ImGui::GetIO().Framerate);
 
-			UpdateGUI();
+				UpdateGUI();
 
-			ImGui::End();
-			ImGui::Render();
+				ImGui::End();
+				ImGui::Render();
 
-			Update(ImGui::GetIO().DeltaTime);
+				Update(ImGui::GetIO().DeltaTime);
 
-			Render();
+				Render();
 
-			SetMainViewport();
-			mContext->OMSetRenderTargets(1, mBackBufferRTV.GetAddressOf(), NULL);
+				SetMainViewport();
+				mContext->OMSetRenderTargets(1, mBackBufferRTV.GetAddressOf(), NULL);
 
-			// GUI 렌더링
-			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+				// GUI 렌더링
+				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
-			// GUI 렌더링 후에 Present() 호출
-			mSwapChain->Present(1, 0);
+				// GUI 렌더링 후에 Present() 호출
+				mSwapChain->Present(1, 0);
+			}
 		}
 		return 0;
 	}
@@ -125,6 +131,13 @@ namespace kyun {
 		case WM_SYSCOMMAND:
 			if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
 				return 0;
+			break;
+		case WM_KEYDOWN:
+			mKeyPressed[wParam] = true;
+			std::cout << wParam << std::endl;
+			if (wParam == VK_ESCAPE) { // ESC키 종료
+				DestroyWindow(hwnd);
+			}
 			break;
 		case WM_DESTROY:
 			::PostQuitMessage(0);
